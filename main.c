@@ -10,7 +10,7 @@
 #define TOOLONG 4
 
 
-void menu(){
+void menu_main(){
   printf("Cosa vuoi fare?\n");
   printf("1) impostare il gioco\n");
   printf("2) giocare\n");
@@ -18,7 +18,7 @@ void menu(){
 }
 
 // la funzione prende una stringa di 32 byte in input
-int getLine(char* inputStr) {
+int get_line(char* inputStr) {
     int chr, check;
 
     if (fgets (inputStr, 32, stdin) == NULL){
@@ -48,9 +48,9 @@ int getLine(char* inputStr) {
 }
 
 
-int getInt(int* choice){
+int get_int(int* choice){
   char choiceStr[2];
-  int result = getLine(choiceStr);
+  int result = get_line(choiceStr);
   if ( result != GOOD)
     return result;
   char *strInit;
@@ -70,8 +70,8 @@ int main(int argc, char** argv){
   int set = 0;
   int exit = 0;
   do{
-    menu();
-    if (getInt(&choice) != GOOD)
+    menu_main();
+    if (get_int(&choice) != GOOD)
       printf("Input non consentito, inserisci un numero tra quelli proposti\n");
     else{
       switch (choice) {
