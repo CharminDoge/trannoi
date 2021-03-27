@@ -21,7 +21,7 @@ void menu_main(){
 int get_line(char* inputStr) {
     int chr, check;
 
-    if (fgets (inputStr, 32, stdin) == NULL){
+    if (fgets (inputStr, 3, stdin) == NULL){
       return EMPTY;
     }
     // controllo che almeno 1 carattere sia stato inserito in input
@@ -32,7 +32,8 @@ int get_line(char* inputStr) {
     // controllo a fine linea se trovo \n
     if (inputStr[len - 1] != '\n') {
         check = 0;
-        // controllo se la lunghezza della stringa inserita supera la dimensione del buffer
+
+        // flush
         while (((chr = getchar()) != '\n') && (chr != EOF))
             check = 1;
 
@@ -51,10 +52,20 @@ int get_line(char* inputStr) {
 int get_int(int* choice){
   char choiceStr[2];
   int result = get_line(choiceStr);
-  if ( result != GOOD)
+  if (result != GOOD)
     return result;
-  char *strInit;
+  char* strInit;
   *choice = strtol(choiceStr, &strInit, 10);
+  return GOOD;
+}
+
+int get_ushort(unsigned short* choice){
+  char choiceStr[2];
+  int result = get_line(choiceStr);
+  if (result != GOOD)
+    return result;
+  char* strInit;
+  *choice = (unsigned short) strtol(choiceStr, &strInit, 10);
   return GOOD;
 }
 
@@ -67,7 +78,7 @@ int main(int argc, char** argv){
   }
 
   int choice = 0;
-  int set = 0;
+  int set = 1;
   int exit = 0;
   do{
     menu_main();
@@ -76,11 +87,10 @@ int main(int argc, char** argv){
     else{
       switch (choice) {
         case 1:
-          imposta_gioco();
-          set = 1;
+          set = imposta_gioco();
           break;
         case 2:
-          if (set == 0){
+          if (set != 0){
             printf("Per giocare devi prima impostare il gioco\n");
             break;
           }

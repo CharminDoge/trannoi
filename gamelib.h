@@ -28,3 +28,4 @@ int deallocate_memory();
 
 int get_line(char* inputStr);
 int get_int(int* choice);
+int get_ushort(unsigned short* choice);
