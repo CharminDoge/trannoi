@@ -1,4 +1,4 @@
-enum Stato_giocatore {astronauta, impostore, assassino, defenestrato};
+enum Stato_giocatore {astronauta, impostore, assassinato, defenestrato};
 enum Nome_giocatore {red, blue, green, yellow, orange, black, white, purple, cyan, brown};
 enum Tipo_stanza {vuota, quest_semplice, quest_complicata, botola};
 
