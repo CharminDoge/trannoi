@@ -10,12 +10,38 @@ struct Stanza** lista_stanze;
 int n_stanze = 0;
 
 char room[4][17] = {"vuota", "quest_semplice", "quest_complicata", "botola"};
-char state[4][13] = {"astronauta", "impostore", "assassino", "defenestrato"};
+char state[4][13] = {"astronauta", "impostore", "assassinato", "defenestrato"};
 char colors[10][7] = {"red", "blue", "green", "yellow", "orange", "black", "white", "purple", "cyan", "brown"};
 
-time_t t;
-srand((unsigned) time(&t));
+
 int n_players = 0;
+
+int myrand(){
+  static time_t t;
+  static char done = 0;
+  if (done == 0){
+    srand((unsigned) time(&t));
+    done = 1;
+  }
+  return rand();
+}
+
+
+
+int check_end_game(){
+  int n_astronauti = 0;
+  int n_impostori = 0;
+  for (int player = 0; player < n_players; player++){
+    if ((giocatori+player)->player_state == astronauta)
+      n_astronauti++;
+    else if ((giocatori+player)->player_state == impostore)
+      n_impostori++;
+  }
+  if (n_impostori > n_astronauti || quest_da_finire < 0)
+    return 1;
+  else
+    return 0;
+}
 
 
 void menu_giocatori(){
@@ -45,26 +71,28 @@ int inizia_gioco(){
   return 0;
 }
 
+// c'è un problema con la randomizzazione dei turni, randomizzi, ma poi non usi l'ordine e questa funzione qua sotto, nell0ultimo printf, non stampa il colore in base all'array randomizzato
 
 void print_info(int giocatore){
-  printf("Stanza: %s\n", myroom = room[(giocatori+giocatore)->player_room]);
+  printf("\n%s sei un %s\n", colors[(giocatori+giocatore)->player_name], state[(giocatori+giocatore)->player_state]);
+  printf("Ti trovi nella stanza: %s\n", room[(giocatori+giocatore)->player_room->type]);
   printf("Con te ci sono: \n");
   for (int player = 0; player < n_players; player++){
-    if ((giocatori+player)->player_room == myroom && player != giocatore)
+    if (((giocatori+player)->player_room == (giocatori+giocatore)->player_room) && (player != giocatore))
       printf("%s ", colors[player]);
   }
 }
 
 
-void menu_gioca(int type, int players_inroom){
+void menu_gioca(int type){
     if (type == 0){
-      printf("Cosa vuoi fare: \n");
+      printf("\nCosa vuoi fare: \n");
       printf("1) Avanzare\n");
       printf("2) Fare una quest\n");
       printf("3) Fare una chiamata d'emergenza\n");
     }
     else if (type == 1){
-      printf("Cosa vuoi fare: \n");
+      printf("\nCosa vuoi fare: \n");
       printf("1) Avanzare\n");
       printf("2) Uccidere un astronauta\n");
       printf("3) Entrare nella botola\n");
@@ -73,24 +101,27 @@ void menu_gioca(int type, int players_inroom){
 }
 
 
-void create_room(struct Stanza* new_stanza, struct Stanza* stanza_precedente){
+void create_room(struct Stanza** new_stanza_ptr, struct Stanza* stanza_precedente){
   // add check to see if malloc succedded
-  new_stanza = (struct Stanza*) malloc(8*4+sizeof(int)+sizeof(char));
+  *new_stanza_ptr = (struct Stanza*) malloc(8*4+sizeof(int)+sizeof(char));
+  struct Stanza* new_stanza = *new_stanza_ptr;
   new_stanza->avanti = NULL;
   new_stanza->sinistra = NULL;
   new_stanza->destra = NULL;
   new_stanza->stanza_precedente = stanza_precedente;
-  int room_rand = rand()%100;
-  if (room_rand < 30)
-    stanza_inizio->type = vuota;
-  else if (room_rand < 60)
-    stanza_inizio->type = quest_semplice;
-  else if (room_rand < 75)
-    stanza_inizio->type = quest_complicata;
-  else
-    stanza_inizio->type = botola;
+  int room_rand = myrand()%100;
+  new_stanza->type = botola;
+  if (room_rand < 75){
+    new_stanza->type = quest_complicata;
+    if (room_rand < 60){
+      new_stanza->type = quest_semplice;
+      if (room_rand < 30)
+        new_stanza->type = vuota;
+    }
+  }
   *(lista_stanze+n_stanze) = new_stanza;
   n_stanze++;
+
 }
 
 
@@ -109,33 +140,37 @@ void avanza(int giocatore){
   switch (destination_room){
     case 1:
       if ((giocatori+giocatore)->player_room->avanti == NULL){
-        create_room((giocatori+giocatore)->player_room->avanti, (giocatori+giocatore)->player_room);
+        create_room(&((giocatori+giocatore)->player_room->avanti), (giocatori+giocatore)->player_room);
       }
-      (giocatori+giocatore)->player_room = (giocatori+giocatore)->player_room->avanti
+      (giocatori+giocatore)->player_room = (giocatori+giocatore)->player_room->avanti;
       break;
     case 2:
       if ((giocatori+giocatore)->player_room->destra == NULL){
-        create_room((giocatori+giocatore)->player_room->destra, (giocatori+giocatore)->player_room);
+        create_room(&((giocatori+giocatore)->player_room->destra), (giocatori+giocatore)->player_room);
       }
-      (giocatori+giocatore)->player_room = (giocatori+giocatore)->player_room->destra
+      (giocatori+giocatore)->player_room = (giocatori+giocatore)->player_room->destra;
       break;
     case 3:
       if ((giocatori+giocatore)->player_room->sinistra == NULL){
-        create_room((giocatori+giocatore)->player_room->sinistra, (giocatori+giocatore)->player_room);
+        create_room(&((giocatori+giocatore)->player_room->sinistra), (giocatori+giocatore)->player_room);
       }
-      (giocatori+giocatore)->player_room = (giocatori+giocatore)->player_room->sinistra
+      (giocatori+giocatore)->player_room = (giocatori+giocatore)->player_room->sinistra;
       break;
     default:
-      printf("Input non consentito, inserisci un numero tra 1 e 3\n", );
+      printf("Input non consentito, inserisci un numero tra 1 e 3\n");
       break;
   }
 }
 
 void esegui_quest(struct Stanza* stanza_quest){
-  if (stanza_quest->type == 1)
+  if (stanza_quest->type == 1){
     quest_da_finire += 1;
-  else if (stanza_quest->type == 2)
+    printf("hai eseguito una quest quest_semplice\n");
+  }
+  else if (stanza_quest->type == 2){
     quest_da_finire += 2;
+    printf("hai eseguito una quest quest_complicata\n");
+  }
   // or simply quest_da_finire += stanza_quest->type se effettuo prima il controllo sulla stanza per capire se poter fare o meno l'esegui quest
 }
 
@@ -154,7 +189,7 @@ void chiamata_emergenza(struct Stanza* stanza_chiamata){
   }
   int prob_astronauti = (3+(2*(room_impostori-1))-(3*(room_astronauti-1)))*room_astronauti;
   int prob_impostori = (3+(2*(room_astronauti-1))-(3*(room_impostori-1)))*room_impostori;
-  int rand_prob = rand()%(prob_astronauti+prob_impostori);
+  int rand_prob = myrand()%(prob_astronauti+prob_impostori);
   if (rand_prob < prob_astronauti)
     (giocatori+rand_prob/(prob_astronauti/room_astronauti))->player_state = defenestrato;
   else
@@ -194,14 +229,14 @@ void uccidi_astronauta(int killer, struct Stanza* stanza_uccisione){
   if (room_astronauti > 1){
     int prevroom_astronauti = 0;
     for (int player = 0; player < n_players; player++){
-      if ((giocatori+player)->player_room == stanza_uccisione->stanza_precedente)
+      if ((giocatori+player)->player_room == (stanza_uccisione)->stanza_precedente)
         prevroom_astronauti++;
     }
     int impostor_prob = 5*(room_astronauti-1)+2*prevroom_astronauti;
     if (impostor_prob > 10)
       (giocatori+killer)->player_state = defenestrato;
     else {
-      int rand_prob = rand() % 10;
+      int rand_prob = myrand() % 10;
       if (rand_prob > impostor_prob)
         (giocatori+killer)->player_state = defenestrato;
     }
@@ -214,13 +249,13 @@ void usa_botola(int impostore, struct Stanza* stanza_botola){
   int n_botole = 0;
   int stanze_botole[n_stanze];
   for (int stanza = 0; stanza < n_stanze; stanza++){
-    if (*(lista_stanze+stanza)->type == botola && *(lista_stanze+stanza) != stanza_botola){
-      stanze_botole[i] = stanza;
+    if ((*(lista_stanze+stanza))->type == botola && *(lista_stanze+stanza) != stanza_botola){
+      stanze_botole[n_botole] = stanza;
       n_botole++;
     }
   }
   if (n_botole == 0){
-    (giocatori+impostore)->player_room = *(lista_stanze+rand()%n_stanze);
+    (giocatori+impostore)->player_room = *(lista_stanze+myrand()%n_stanze);
     printf("Non ci sono altre botole, sei stati teletrasportato in una stanza casuale\n");
   }
   else{
@@ -249,8 +284,9 @@ int imposta_gioco(){
   // pointer + enum*2 == 16
 
   giocatori = (struct Giocatore*) malloc(n_players*(8 + sizeof(int)*2));
-  create_room(stanza_inizio, NULL);
-
+  // TODO: check if c'ha senso la size della malloc
+  lista_stanze = (struct Stanza**) malloc(8*n_players*quest_da_finire);
+  create_room(&stanza_inizio, NULL);
 
   /* slower
   clock_t begin = clock();
@@ -283,12 +319,14 @@ int imposta_gioco(){
     (giocatori+player)->player_name = player;
   }
 
+
+
   // pseudo-random name shuffle
   int r_int1 = 0;
   int r_int2 = 0;
   for (int i = 0; i < 35; i++){
-    r_int1 = rand()%n_players;
-    while ((r_int2 = rand()%n_players) == r_int1);
+    r_int1 = myrand()%n_players;
+    while ((r_int2 = myrand()%n_players) == r_int1);
     // swap array elements
     (giocatori+r_int1)->player_name = (giocatori+r_int1)->player_name ^ (giocatori+r_int2)->player_name;
     (giocatori+r_int2)->player_name = (giocatori+r_int1)->player_name ^ (giocatori+r_int2)->player_name;
@@ -298,9 +336,8 @@ int imposta_gioco(){
   // set impostori
   int impostors = 0;
   for (int i = 0; i < ((n_players-1)/3); i++){
-    (giocatori+rand()%n_players)->player_state = impostore;
+    (giocatori+myrand()%n_players)->player_state = impostore;
   }
-
   printf("Giocatori impostati: %d\n", n_players);
 
 
@@ -310,8 +347,7 @@ int imposta_gioco(){
     menu_quest();
   }
 
-  // TODO: check if c'ha senso la size della malloc
-  lista_stanze = (struct Stanza**) malloc(8*n_players*quest_da_finire);
+
   /*
   // inizializzazione stanza_inizio
   stanza_inizio->avanti = NULL;
@@ -337,7 +373,7 @@ int imposta_gioco(){
       menu_imposta();
     }
     if (scelta == 1)
-        stampa_giocatori(n_players);
+        stampa_giocatori();
     else if (scelta != 2)
         printf("Input non consentito, inserisci 1 o 2\n");
   }
@@ -347,6 +383,7 @@ int imposta_gioco(){
 
 
 int gioca(){
+
   int players_order[n_players];
   for (int i = 0; i < n_players; i++){
     players_order[i] = i;
@@ -354,61 +391,65 @@ int gioca(){
   int r_int1 = 0;
   int r_int2 = 0;
   for (int i = 0; i < 35; i++){
-    r_int1 = rand()%n_players;
-    while ((r_int2 = rand()%n_players) == r_int1);
+    r_int1 = myrand()%n_players;
+    while ((r_int2 = myrand()%n_players) == r_int1);
     // swap array elements
     players_order[r_int1] = players_order[r_int1] ^ players_order[r_int2];
     players_order[r_int2] = players_order[r_int1] ^ players_order[r_int2];
     players_order[r_int1] = players_order[r_int1] ^ players_order[r_int2];
   }
-  for (int player = 0; player < n_players; player++){
-    int choiche = 0;
-    print_info();
-    menu_gioca();
-    while (get_int(&choiche) != 0 || choiche < 1 || choiche > 3){
-      printf("Input non consentito, inserisci un numero compreso tra 4 e 50\n");
-      menu_gioca();
-    }
-    if ((giocatori+player)->player_state == 0){
-      switch (choice){
-        case 1:
-          avanza();
-          break;
-        case 2:
-          esegui_quest();
-          break;
-        case 3:
-          chiamata_emergenza();
-          break;
-        default:
-          printf("Inserisci un numero tra 1 e 3\n");
-          menu_gioca();
-          //TODO: gotta scanf again bro
-          break;
-      }
-    }
-    else if ((giocatori+player)->player_state == 0){
-      switch (choice){
-        case 1;
-          avanza();
-          break;
-        case 2:
-          uccidi_astronauta();
-          break;
-        case 3;
-          usa_botola();
-          break;
-        case 4;
-          sabotaggio();
-          break;
-        default:
-          printf("Inserisci un numero tra 1 e 3\n");
-          menu_gioca();
-          //TODO: gotta scanf again bro
-          break;
-      }
-    }
+  while (check_end_game() == 0){
+    for (int player = 0; player < n_players; player++){
+      int choice = 0;
+      print_info(players_order[player]);
 
+      //inserisci get_int() in menu_gioca();
+      menu_gioca((giocatori+player)->player_state);
+      while (get_int(&choice) != 0 || choice < 1 || choice > 3){
+        printf("Input non consentito, inserisci un numero compreso tra 4 e 50\n");
+        menu_gioca((giocatori+player)->player_state);
+      }
+      if ((giocatori+player)->player_state == astronauta){
+        switch (choice){
+          case 1:
+            avanza(player);
+            break;
+          case 2:
+            esegui_quest((giocatori+player)->player_room);
+            break;
+          case 3:
+            chiamata_emergenza((giocatori+player)->player_room);
+            break;
+          default:
+            printf("Inserisci un numero tra 1 e 3\n");
+            menu_gioca((giocatori+player)->player_state);
+            //TODO: gotta scanf again bro
+            break;
+        }
+      }
+      else if ((giocatori+player)->player_state == impostore){
+        switch (choice){
+          case 1:
+            avanza(player);
+            break;
+          case 2:
+            uccidi_astronauta(player, (giocatori+player)->player_room);
+            break;
+          case 3:
+            usa_botola(player, (giocatori+player)->player_room);
+            break;
+          case 4:
+            sabotaggio((giocatori+player)->player_room);
+            break;
+          default:
+            printf("Inserisci un numero tra 1 e 3\n");
+            menu_gioca((giocatori+player)->player_state);
+            //TODO: gotta scanf again bro
+            break;
+        }
+      }
+    }
+  }
   return 0;
 }
 
