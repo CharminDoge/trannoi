@@ -8,14 +8,15 @@ unsigned short quest_da_finire;
 struct Stanza* stanza_inizio;
 //TODO: da utilizzare come giocatori
 struct Stanza** lista_stanze;
+
 int n_stanze = 0;
-
-char room[4][17] = {"vuota", "quest_semplice", "quest_complicata", "botola"};
-char state[4][13] = {"astronauta", "impostore", "assassinato", "defenestrato"};
-char colors[10][7] = {"red", "blue", "green", "yellow", "orange", "black", "white", "purple", "cyan", "brown"};
-
-
 int n_players = 0;
+
+const char room[4][17] = {"vuota", "quest_semplice", "quest_complicata", "botola"};
+const char state[4][13] = {"astronauta", "impostore", "assassinato", "defenestrato"};
+const char colors[10][7] = {"red", "blue", "green", "yellow", "orange", "black", "white", "purple", "cyan", "brown"};
+
+
 
 int myrand(){
   static time_t t;
@@ -88,7 +89,7 @@ void stampa_giocatori(){
 //TODO
 int inizia_gioco(){
   printf("Gioco impostato correttamente\n");
-  return 0;
+  return 1;
 }
 
 
@@ -106,7 +107,7 @@ void print_info(int giocatore){
   }
   if ((giocatori+giocatore)->player_state == impostore){
     if (n_impostori > 1)
-      printf("\nCi sono altri %d impostori nell'astronave\n", n_impostori);
+      printf("\nCi sono altri %d impostori nell'astronave\n", n_impostori-1);
     else
       printf("\nNon ci sono altri impostori nell'astronave\n");
   }
@@ -121,6 +122,15 @@ int players_in_room(struct Stanza* room){
     }
   }
   return count;
+}
+
+
+int anyone_killed(struct Stanza* room){
+  for (int player = 0; player < n_players; player++){
+    if ((giocatori+player)->player_room == room && (giocatori+player)->player_state == assassinato)
+      return 1;
+  }
+  return 0;
 }
 
 
@@ -150,7 +160,7 @@ void menu_gioca(int giocatore, int* scelte, int arr_func[]){
       (*scelte)++;
       printf("%d) Fai quest\n", *scelte);
     }
-    if (players_in_room((giocatori+giocatore)->player_room) > 1){
+    if ((giocatori+giocatore)->player_room->emergenza_chiamata = 0 && players_in_room((giocatori+giocatore)->player_room) > 1 && anyone_killed((giocatori+giocatore)->player_room) == 1){
       arr_func[*scelte] = 3;
       (*scelte)++;
       printf("%d) Chiamata d'emergenza\n", *scelte);
@@ -166,9 +176,11 @@ void menu_gioca(int giocatore, int* scelte, int arr_func[]){
       (*scelte)++;
       printf("%d) Uccidi astronauta\n", *scelte);
     }
-    arr_func[*scelte] = 3;
-    (*scelte)++;
-    printf("%d) Usa botola\n", *scelte);
+    if (n_stanze > 1){
+      arr_func[*scelte] = 3;
+      (*scelte)++;
+      printf("%d) Usa botola\n", *scelte);
+    }
     if ((giocatori+giocatore)->player_room->type == quest_semplice || (giocatori+giocatore)->player_room->type == quest_complicata){
       arr_func[*scelte] = 4;
       (*scelte)++;
@@ -185,6 +197,7 @@ void get_int_azione(int* func, int giocatore){
   menu_gioca(giocatore, &scelte, arr_func);
   while (get_int(&choice) != 0 || choice < 1 || choice > scelte){
     printf("Input non consentito, inserisci un numero tra 1 e %d\n", scelte);
+    scelte = 0;
     menu_gioca(giocatore, &scelte, arr_func);
   }
   *func = arr_func[choice-1];
@@ -219,13 +232,18 @@ void menu_avanza(){
   printf("1) Avanti\n");
   printf("2) Destra\n");
   printf("3) Sinistra\n");
+  printf("4) Resta fermo\n");
 }
 
 
 void avanza(int giocatore){
+  //TODO: aggiungi la possibilità di stare fermo
   menu_avanza();
   int destination_room = 0;
-  while (get_int(&destination_room) != 0);
+  while (get_int(&destination_room) != 0 || destination_room < 1 || destination_room > 4){
+    printf("Input non consentito, inserisci un numero tra 1 e 4\n");
+    menu_avanza();
+  }
   // avanti, destra, sinistra
   switch (destination_room){
     case 1:
@@ -252,8 +270,7 @@ void avanza(int giocatore){
       }
       (giocatori+giocatore)->player_room = (giocatori+giocatore)->player_room->sinistra;
       break;
-    default:
-      printf("Input non consentito, inserisci un numero tra 1 e 3\n");
+    case 4:
       break;
   }
 }
@@ -306,12 +323,11 @@ void chiamata_emergenza(struct Stanza* stanza_chiamata){
 
 
 void uccidi_astronauta(int killer, struct Stanza* stanza_uccisione){
-  //il giocatore ucciso non può più giocare (da implementare nel for delle azioni dei giocatori in gioca())
   int room_astronauti = 0;
   int killable_players[n_players];
+  int i = 0;
   for (int player = 0; player < n_players; player++){
     if ((giocatori+player)->player_room == stanza_uccisione && (giocatori+player)->player_state == astronauta){
-      static int i = 0;
       room_astronauti++;
       killable_players[i] = player;
       i++;
@@ -321,15 +337,15 @@ void uccidi_astronauta(int killer, struct Stanza* stanza_uccisione){
   if (room_astronauti >= 1){
     printf("Gli astronauti\n");
     for (int player = 0; player < room_astronauti; player++){
-      printf("%d) %s\n", player, colors[(giocatori+killable_players[player])->player_name]);
+      printf("%d) %s\n", player+1, colors[(giocatori+killable_players[player])->player_name]);
     }
     printf("sono nella stanza con te! Chi vuoi uccidere?\n");
     int player_to_kill = -1;
     int exit = 0;
-    while (get_int(&player_to_kill) != 0 || player_to_kill < 0 || player_to_kill > room_astronauti)
-      printf("Input non consentito, inserisci un numero tra 0 e %d\n", room_astronauti-1);
-    (giocatori+killable_players[player_to_kill])->player_state = assassinato;
-    printf("L'astronauta %s è stato ucciso\n", colors[(giocatori+killable_players[player_to_kill])->player_name]);
+    while (get_int(&player_to_kill) != 0 || player_to_kill < 1 || player_to_kill > room_astronauti)
+      printf("Input non consentito, inserisci un numero tra 1 e %d\n", room_astronauti);
+    (giocatori+killable_players[player_to_kill-1])->player_state = assassinato;
+    printf("L'astronauta %s è stato ucciso\n", colors[(giocatori+killable_players[player_to_kill-1])->player_name]);
     // se ci sono due astronauti e uno viene ucciso, vince l'impostore
     if (check_end_game() == 0){
       int prevroom_astronauti = 0;
@@ -507,12 +523,12 @@ int gioca(){
   int game = 0;
   int turno = 0;
   while (game == 0){
+    turno++;
     for (int player = 0; player < n_players; player++){
       int cycle_player = players_order[player];
-      turno++;
+      printf("\nTurno %d\n", turno);
       if ((giocatori+cycle_player)->player_state == astronauta){
         int choice = 0;
-        printf("\nTurno %d\n", turno);
         print_info(cycle_player);
         /*
         menu_gioca((giocatori+cycle_player)->player_state);
@@ -583,9 +599,26 @@ int gioca(){
   return 0;
 }
 
+
+//TODO: log degli eveti suddiviso per turni
+//Turno 1
+//red è stato ucciso da blue
+//blue è stato scoperto
+//
+//Turno 2
+//yellow ha fatto una chiamata d'emergenza
 int deallocate_memory(){
   //dealloca memoria quando esci e quando viene chiamata la imposta gioco per la seconda volta
   //resetta variabili globali
-  printf("dealloca\n");
+  printf("dealloca...\n");
+  free(giocatori);
+  for (int i = 0; i < n_stanze; i++){
+    free(*(lista_stanze+i));
+    printf("deallocate i giocatori\n");
+  }
+  free(lista_stanze);
+  quest_da_finire = 0;
+  n_stanze = 0;
+  n_players = 0;
   return 0;
 }

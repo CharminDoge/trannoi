@@ -12,9 +12,9 @@
 
 void menu_main(){
   printf("Cosa vuoi fare?\n");
-  printf("1) impostare il gioco\n");
-  printf("2) giocare\n");
-  printf("3) uscire\n");
+  printf("1) Imposta il gioco\n");
+  printf("2) Gioca\n");
+  printf("3) Esci\n");
 }
 
 // la funzione prende una stringa di 32 byte in input
@@ -78,7 +78,7 @@ int main(int argc, char** argv){
   }
 
   int choice = 0;
-  int set = 1;
+  int set = 0;
   int exit = 0;
   do{
     menu_main();
@@ -87,10 +87,12 @@ int main(int argc, char** argv){
     else{
       switch (choice) {
         case 1:
+          if (set == 1)
+            deallocate_memory();
           set = imposta_gioco();
           break;
         case 2:
-          if (set != 0){
+          if (set != 1){
             printf("Per giocare devi prima impostare il gioco\n");
             break;
           }
