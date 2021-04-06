@@ -30,9 +30,6 @@ int myrand(){
 
 
 void randomize_player_intarray(int* player_array, int n){
-  for (int i = 0; i < n; i++){
-    player_array[i] = i;
-  }
   int r_int1 = 0;
   int r_int2 = 0;
   for (int i = 0; i < 100; i++){
@@ -160,7 +157,6 @@ void menu_gioca(int giocatore, int* scelte, int arr_func[]){
       (*scelte)++;
       printf("%d) Fai quest\n", *scelte);
     }
-    //TODO: non controllare se c'è un altro giocatore, ma se c'è un assassinato????? non chiede questo il progetto
     if ((giocatori+giocatore)->player_room->emergenza_chiamata == 0 && players_in_room((giocatori+giocatore)->player_room) > 1 && anyone_killed((giocatori+giocatore)->player_room) == 1){
       arr_func[*scelte] = 3;
       (*scelte)++;
@@ -295,8 +291,6 @@ void esegui_quest(struct Stanza* stanza_quest){
 
 
 void chiamata_emergenza(struct Stanza* stanza_chiamata){
-  printf("entered chiamata_emergenza\n");
-  // TODO: need to check first if someone has been killed
   //TODO: rendi il conteggio dei player nella stanza una funzione
   int room_astronauti = 0;
   int astronauti[n_players-1];
@@ -315,7 +309,6 @@ void chiamata_emergenza(struct Stanza* stanza_chiamata){
       }
     }
   }
-  //TODO: ASSOLUTAMENTE da rifare tutto il sistema di probabilità, non fai il controllo su chi è ancora vivo
   int prob_astronauti = 3+2*room_impostori-3*(room_astronauti-1);
   int prob_impostori = 3+2*room_astronauti-3*(room_impostori-1);
   if (prob_impostori < 0){
@@ -459,6 +452,9 @@ int imposta_gioco(){
 
   // inizializza name e state
   int random_colors[10];
+  for (int i = 0; i < 10; i++){
+    random_colors[i] = i;
+  }
   randomize_player_intarray(random_colors, 10);
   for (int player = 0; player < n_players; player++){
     (giocatori+player)->player_room = stanza_inizio;
@@ -531,18 +527,19 @@ int imposta_gioco(){
 
 int gioca(){
 
-  // order randomize
   int players_order[n_players];
-  randomize_player_intarray(players_order, n_players);
-
-
-  for (int player = 0; player < n_players; player++){
-    printf("%s\n", colors[(giocatori+players_order[player])->player_name]);
+  for (int i = 0; i < n_players; i++){
+    players_order[i] = i;
   }
   int game = 0;
   int turno = 0;
-  //TODO: i giocatori vanno randomizzati ad ogni turno
+
   while (game == 0){
+    randomize_player_intarray(players_order, n_players);
+    printf("\nPlayers order:\n");
+    for (int player = 0; player < n_players; player++){
+      printf("%d) %s\n", player+1, colors[(giocatori+players_order[player])->player_name]);
+    }
     turno++;
     for (int player = 0; player < n_players; player++){
       int cycle_player = players_order[player];
@@ -598,7 +595,7 @@ int gioca(){
         }
       }
       else if ((giocatori+cycle_player)->player_state > 2){
-        printf("\n%s è un %s, non può giocare\n", colors[(giocatori+cycle_player)->player_name], state[(giocatori+cycle_player)->player_state]);
+        printf("%s è un %s, non può giocare\n", colors[(giocatori+cycle_player)->player_name], state[(giocatori+cycle_player)->player_state]);
       }
       if ((game = check_end_game()) > 0){
         switch (game) {
