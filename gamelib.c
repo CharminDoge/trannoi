@@ -160,7 +160,8 @@ void menu_gioca(int giocatore, int* scelte, int arr_func[]){
       (*scelte)++;
       printf("%d) Fai quest\n", *scelte);
     }
-    if ((giocatori+giocatore)->player_room->emergenza_chiamata = 0 && players_in_room((giocatori+giocatore)->player_room) > 1 && anyone_killed((giocatori+giocatore)->player_room) == 1){
+    //TODO: non controllare se c'è un altro giocatore, ma se c'è un assassinato????? non chiede questo il progetto
+    if ((giocatori+giocatore)->player_room->emergenza_chiamata == 0 && players_in_room((giocatori+giocatore)->player_room) > 1 && anyone_killed((giocatori+giocatore)->player_room) == 1){
       arr_func[*scelte] = 3;
       (*scelte)++;
       printf("%d) Chiamata d'emergenza\n", *scelte);
@@ -221,6 +222,7 @@ void create_room(struct Stanza** new_stanza_ptr, struct Stanza* stanza_precedent
         new_stanza->type = vuota;
     }
   }
+  new_stanza->emergenza_chiamata = 0;
   *(lista_stanze+n_stanze) = new_stanza;
   n_stanze++;
 
@@ -237,7 +239,6 @@ void menu_avanza(){
 
 
 void avanza(int giocatore){
-  //TODO: aggiungi la possibilità di stare fermo
   menu_avanza();
   int destination_room = 0;
   while (get_int(&destination_room) != 0 || destination_room < 1 || destination_room > 4){
@@ -296,28 +297,44 @@ void esegui_quest(struct Stanza* stanza_quest){
 void chiamata_emergenza(struct Stanza* stanza_chiamata){
   printf("entered chiamata_emergenza\n");
   // TODO: need to check first if someone has been killed
+  //TODO: rendi il conteggio dei player nella stanza una funzione
   int room_astronauti = 0;
+  int astronauti[n_players-1];
   int room_impostori = 0;
+  int impostori[3];
+  int player_to_defenestrare;
   for (int player = 0; player < n_players; player++){
     if ((giocatori+player)->player_room == stanza_chiamata){
-      if ((giocatori+player)->player_state == astronauta)
+      if ((giocatori+player)->player_state == astronauta){
+        astronauti[room_astronauti] = player;
         room_astronauti++;
-      else if ((giocatori+player)->player_state == impostore)
+      }
+      else if ((giocatori+player)->player_state == impostore){
+        impostori[room_impostori] = player;
         room_impostori++;
+      }
     }
   }
   //TODO: ASSOLUTAMENTE da rifare tutto il sistema di probabilità, non fai il controllo su chi è ancora vivo
-  int prob_astronauti = (3+(2*(room_impostori-1))-(3*(room_astronauti-1)))*room_astronauti;
-  int prob_impostori = (3+(2*(room_astronauti-1))-(3*(room_impostori-1)))*room_impostori;
-  int rand_prob = myrand()%(prob_astronauti+prob_impostori);
-  if (rand_prob < prob_astronauti){
-    printf("L'%s %s è stato defenestrato\n", state[(giocatori+rand_prob/(prob_astronauti/room_astronauti))->player_state], colors[(giocatori+rand_prob/(prob_astronauti/room_astronauti))->player_name]);
-    (giocatori+rand_prob/(prob_astronauti/room_astronauti))->player_state = defenestrato;
+  int prob_astronauti = 3+2*room_impostori-3*(room_astronauti-1);
+  int prob_impostori = 3+2*room_astronauti-3*(room_impostori-1);
+  if (prob_impostori < 0){
+    player_to_defenestrare = rand()%room_astronauti;
   }
-  else{
-    printf("L'%s %s è stato defenestrato\n", state[(giocatori+(rand_prob-prob_astronauti)/(prob_impostori/room_impostori))->player_state], colors[(giocatori+(rand_prob-prob_astronauti)/(prob_impostori/room_impostori))->player_name]);
-    (giocatori+(rand_prob-prob_astronauti)/(prob_impostori/room_impostori))->player_state = defenestrato;
+  else if (prob_astronauti < 0){
+    player_to_defenestrare = rand()%room_impostori;
   }
+  else if (prob_impostori > 0 && prob_astronauti > 0){
+    int rand_prob = rand()%(prob_astronauti*room_astronauti+prob_impostori*room_impostori);
+    if (rand_prob < prob_astronauti*room_astronauti){
+      player_to_defenestrare = astronauti[rand_prob/prob_astronauti];
+    }
+    else{
+      player_to_defenestrare = impostori[(rand_prob-prob_astronauti*room_astronauti)/prob_impostori];
+    }
+  }
+  printf("L'%s %s è stato defenestrato\n", state[(giocatori+player_to_defenestrare)->player_state], colors[(giocatori+player_to_defenestrare)->player_name]);
+  (giocatori+player_to_defenestrare)->player_state = defenestrato;
   stanza_chiamata->emergenza_chiamata = 1;
 }
 
@@ -333,7 +350,7 @@ void uccidi_astronauta(int killer, struct Stanza* stanza_uccisione){
       i++;
     }
   }
-
+  //TODO: se non c'è nessuno non dovrebbe stampare nulla
   if (room_astronauti >= 1){
     printf("Gli astronauti\n");
     for (int player = 0; player < room_astronauti; player++){
@@ -356,12 +373,14 @@ void uccidi_astronauta(int killer, struct Stanza* stanza_uccisione){
       int impostor_prob = 5*(room_astronauti-1)+2*prevroom_astronauti;
       if (impostor_prob > 10){
         (giocatori+killer)->player_state = defenestrato;
+        (giocatori+killer)->player_room->emergenza_chiamata = 1;
         printf("%s te sei fregato da solo\n", colors[(giocatori+killer)->player_name]);
       }
       else if (impostor_prob > 0){
         int rand_prob = myrand() % 10;
         if (rand_prob > impostor_prob){
           (giocatori+killer)->player_state = defenestrato;
+          (giocatori+killer)->player_room->emergenza_chiamata = 1;
           printf("%s te sei fregato da solo\n", colors[(giocatori+killer)->player_name]);
         }
       }
@@ -410,7 +429,7 @@ int imposta_gioco(){
   // pointer + enum*2 == 16
 
   giocatori = (struct Giocatore*) malloc(n_players*(8 + sizeof(int)*2));
-  // TODO: check if c'ha senso la size della malloc
+  // TODO: check if c'ha senso la size della malloc (non c'ha senso, è troppo piccola) puoi pensare di aggiungere un parametro next alla struct e fare una lista dinamica invece che un array con size fisso
   lista_stanze = (struct Stanza**) malloc(8*n_players*quest_da_finire);
   create_room(&stanza_inizio, NULL);
 
@@ -522,6 +541,7 @@ int gioca(){
   }
   int game = 0;
   int turno = 0;
+  //TODO: i giocatori vanno randomizzati ad ogni turno
   while (game == 0){
     turno++;
     for (int player = 0; player < n_players; player++){

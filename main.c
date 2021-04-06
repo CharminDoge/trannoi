@@ -17,7 +17,7 @@ void menu_main(){
   printf("3) Esci\n");
 }
 
-// la funzione prende una stringa di 32 byte in input
+// la funzione prende una stringa di 3 byte in input
 int get_line(char* inputStr) {
     int chr, check;
 
