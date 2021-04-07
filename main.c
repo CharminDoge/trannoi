@@ -88,7 +88,7 @@ int main(int argc, char** argv){
   do{
     menu_main();
     if (get_int(&choice) != GOOD)
-      printf("Input non consentito, inserisci un numero tra quelli proposti\n");
+      printf("Input non consentito, inserisci un numero tra 1 e 3\n");
     else{
       switch (choice) {
         case 1:
@@ -98,8 +98,10 @@ int main(int argc, char** argv){
           break;
         case 2:
           if (game_set != 1){
-            if (game_active == 1)
+            if (game_active == 1){
               deallocate_memory();
+              game_set = 0;
+            }
             printf("Per giocare devi prima impostare il gioco\n");
             break;
           }
@@ -107,13 +109,13 @@ int main(int argc, char** argv){
           game_active = 1;
           break;
         case 3:
-          printf("dealloco la memoria...\n");
-          deallocate_memory();
+          if (game_set == 1)
+            deallocate_memory();
           printf("%s left the chat\n", name);
           exit = 1;
           break;
         default:
-          printf("Input non consentito, inserisci un numero tra quelli proposti\n");
+          printf("Input non consentito, inserisci un numero tra 1 e 3\n");
           break;
         }
       }
