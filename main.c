@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <string.h>
 #include "gamelib.h"
 
@@ -72,13 +73,17 @@ int get_ushort(unsigned short* choice){
 
 int main(int argc, char** argv){
 
-  char* name = "anonimo"; //TODO: random name generator (aggettivo + nome, in stile docker container for desktop)
+  char* name = "anonimo";
   if (argc > 1){
     name = argv[1];
   }
 
+  time_t t;
+  srand((unsigned) time(&t));
+
   int choice = 0;
-  int set = 0;
+  int game_set = 0;
+  int game_active = 0;
   int exit = 0;
   do{
     menu_main();
@@ -87,20 +92,23 @@ int main(int argc, char** argv){
     else{
       switch (choice) {
         case 1:
-          if (set == 1)
+          if (game_set == 1)
             deallocate_memory();
-          set = imposta_gioco();
+          game_set = imposta_gioco();
           break;
         case 2:
-          if (set != 1){
+          if (game_set != 1){
+            if (game_active == 1)
+              deallocate_memory();
             printf("Per giocare devi prima impostare il gioco\n");
             break;
           }
           gioca();
+          game_active = 1;
           break;
         case 3:
-          printf("doing things...\n");
-          deallocate_memory(); //TODO
+          printf("dealloco la memoria...\n");
+          deallocate_memory();
           printf("%s left the chat\n", name);
           exit = 1;
           break;
