@@ -77,11 +77,11 @@ static void menu_imposta(){
 static int get_ushort(unsigned short* choice){
   char choiceStr[2];
   int result = get_line(choiceStr);
-  if (result != GOOD)
+  if (result != 0)
     return result;
   char* strInit;
   *choice = (unsigned short) strtol(choiceStr, &strInit, 10);
-  return GOOD;
+  return 0;
 }
 
 
@@ -671,13 +671,15 @@ int gioca(){
 int deallocate_memory(){
   printf("dealloco la memoria...\n");
   free(giocatori);
+  giocatori = NULL;
   struct Stanza* cycle_stanza = lista_stanze;
   struct Stanza* tmp_stanza;
   do{
     tmp_stanza = cycle_stanza->stanza_precedente;
     free(cycle_stanza);
     cycle_stanza = tmp_stanza;
-  } while (cycle_stanza->stanza_precedente != NULL);
+  } while (tmp_stanza != NULL);
+  lista_stanze = NULL;
   quest_da_finire = 0;
   n_stanze = 0;
   n_players = 0;
